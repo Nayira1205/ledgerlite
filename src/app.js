@@ -8,6 +8,8 @@ const pinoHttp = require('pino-http');
 const config = require('./config/env');
 const logger = require('./utils/logger');
 const healthRoutes = require('./routes/health.routes');
+const authRoutes = require('./routes/auth.routes');
+const meRoutes = require('./routes/me.routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -18,6 +20,8 @@ app.use(express.json({ limit: '10kb' })); // small limit: our requests are tiny
 app.use(pinoHttp({ logger })); // logs one line per request
 
 app.use('/api/v1/health', healthRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/me', meRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

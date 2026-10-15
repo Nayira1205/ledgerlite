@@ -13,10 +13,13 @@
     "dev": "node --watch src/server.js",
     "lint": "eslint .",
     "test": "jest --runInBand",
-    "check": "npm run lint && npm test"
+    "check": "npm run lint && npm test",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFiles": ["<rootDir>/tests/setup-env.js"]
   },
   "dependencies": {
     "cors": "^2.8.6",

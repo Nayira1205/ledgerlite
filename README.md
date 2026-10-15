@@ -6,19 +6,20 @@ A **simulated INR digital wallet backend** built with Node.js, Express and Mongo
 
 ## Status
 
-Milestone 1 (project setup) - in progress. See the full design in [docs/MILESTONE-0-PLAN.md](docs/MILESTONE-0-PLAN.md).
+Milestone 2 (database and authentication) - code written, awaiting verification on the developer's machine. See the full design in [docs/MILESTONE-0-PLAN.md](docs/MILESTONE-0-PLAN.md).
 
 ## Requirements
 
 - Node.js 20 or newer (developed on v22)
 - npm
-- Docker (needed from Milestone 2 for the local MongoDB replica set)
+- Docker Desktop (runs the local MongoDB replica set)
 
 ## Quick start
 
 ```bash
 npm install
-cp .env.example .env      # then edit .env if you want
+cp .env.example .env      # then set JWT_SECRET in .env (see the comment inside)
+npm run db:up             # starts MongoDB (one-node replica set) in Docker
 npm run dev               # starts the API with auto-restart
 ```
 
@@ -38,6 +39,23 @@ curl http://localhost:3000/api/v1/health
 | `npm run lint` | Check code style and obvious mistakes (ESLint) |
 | `npm test` | Run the tests (Jest + Supertest) |
 | `npm run check` | Lint, then tests |
+| `npm run db:up` | Start the local MongoDB replica set (Docker) |
+| `npm run db:down` | Stop it (data is kept in a Docker volume) |
+
+## API so far (base path `/api/v1`)
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/health` | no | Liveness check |
+| POST | `/auth/register` | no | Create an account `{name, email, password}` |
+| POST | `/auth/login` | no | Returns a JWT `{token, tokenType, expiresIn, user}` |
+| GET | `/me` | Bearer token | Current user |
+
+Errors always look like `{"error":{"code","message","details"}}`.
+
+## Tests
+
+Auth tests need the database running (`npm run db:up`). They use a separate `ledgerlite_test` database and fixed test settings, never your `.env`.
 
 ## Project structure
 
@@ -45,10 +63,14 @@ curl http://localhost:3000/api/v1/health
 src/
   app.js            Express app (no listening, so tests can use it)
   server.js         Starts the HTTP server
-  config/env.js     Reads and validates environment variables
+  config/           env.js (validated settings), db.js (MongoDB connection)
+  models/           Mongoose schemas (User)
   routes/           URL -> handler mapping
-  middleware/       Error handling (auth, validation, etc. come later)
-  utils/            Logger, AppError
+  controllers/      HTTP in/out only
+  services/         Business rules (register, login)
+  middleware/       authenticate (JWT), validate (Joi), error handler
+  validators/       Joi request schemas
+  utils/            Logger, AppError, token (JWT), asyncHandler
 tests/              Jest + Supertest tests
 docs/               Design documents
 ```
@@ -56,8 +78,8 @@ docs/               Design documents
 ## Roadmap
 
 - [x] Milestone 0 - Requirements and design
-- [ ] Milestone 1 - Project setup and GitHub
-- [ ] Milestone 2 - Database and authentication
+- [x] Milestone 1 - Project setup and GitHub
+- [ ] Milestone 2 - Database and authentication (code written, not yet verified)
 - [ ] Milestone 3 - Wallet and ledger
 - [ ] Milestone 4 - Idempotency, concurrency, API tests, OpenAPI
 - [ ] Milestone 5 - Optional React interface
