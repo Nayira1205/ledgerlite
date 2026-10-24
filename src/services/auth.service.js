@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user.model');
 const AppError = require('../utils/AppError');
 const config = require('../config/env');
+const walletService = require('./wallet.service');
 const { signToken } = require('../utils/token');
 
 // A real bcrypt hash of a throwaway password. When a login email does not exist we still
@@ -13,8 +14,9 @@ const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', config.bcryptRounds);
 async function register({ name, email, password }) {
   const passwordHash = await bcrypt.hash(password, config.bcryptRounds);
 
+  let user;
   try {
-    return await User.create({ name, email, passwordHash });
+    user = await User.create({ name, email, passwordHash });
   } catch (err) {
     // 11000 = MongoDB "duplicate key": the unique email index rejected the insert.
     // Checking this (instead of "find, then insert") is safe when two requests race.
@@ -23,6 +25,11 @@ async function register({ name, email, password }) {
     }
     throw err;
   }
+
+  // Every user gets a wallet with a zero balance. If this step ever failed, the user would
+  // exist without a wallet, but GET /wallet creates a missing wallet, so it heals itself.
+  await walletService.ensureUserWallet(user._id);
+  return user;
 }
 
 async function login({ email, password }) {

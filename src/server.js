@@ -2,12 +2,16 @@
 const app = require('./app');
 const config = require('./config/env');
 const logger = require('./utils/logger');
+const { initModels } = require('./models');
 const { connectDb, disconnectDb } = require('./config/db');
+const { ensureFaucetWallet } = require('./services/wallet.service');
 
 let server;
 
 async function start() {
   await connectDb();
+  await initModels();
+  await ensureFaucetWallet();
   server = app.listen(config.port, () => {
     logger.info(
       { port: config.port, env: config.nodeEnv, demoMode: config.demoMode },
