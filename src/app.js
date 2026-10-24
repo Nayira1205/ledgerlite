@@ -11,6 +11,7 @@ const healthRoutes = require('./routes/health.routes');
 const authRoutes = require('./routes/auth.routes');
 const meRoutes = require('./routes/me.routes');
 const walletRoutes = require('./routes/wallet.routes');
+const transferRoutes = require('./routes/transfer.routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/transfers', transferRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

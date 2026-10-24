@@ -6,7 +6,7 @@ A **simulated INR digital wallet backend** built with Node.js, Express and Mongo
 
 ## Status
 
-Milestone 2 (database and authentication) - code written, awaiting verification on the developer's machine. See the full design in [docs/MILESTONE-0-PLAN.md](docs/MILESTONE-0-PLAN.md).
+Milestone 3 (wallets, ledger, demo funding and transfers) is complete: 101 automated tests pass. See the full design in [docs/MILESTONE-0-PLAN.md](docs/MILESTONE-0-PLAN.md).
 
 ## Requirements
 
@@ -42,7 +42,7 @@ curl http://localhost:3000/api/v1/health
 | `npm run db:up` | Start the local MongoDB replica set (Docker) |
 | `npm run db:down` | Stop it (data is kept in a Docker volume) |
 
-## API so far (base path `/api/v1`)
+## API (base path `/api/v1`)
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
@@ -50,12 +50,23 @@ curl http://localhost:3000/api/v1/health
 | POST | `/auth/register` | no | Create an account `{name, email, password}` |
 | POST | `/auth/login` | no | Returns a JWT `{token, tokenType, expiresIn, user}` |
 | GET | `/me` | Bearer token | Current user |
+| GET | `/wallet` | Bearer token | Your wallet and balance |
+| POST | `/wallet/demo-funds` | Bearer token | Add **demo** money `{amountPaise}` (only when `DEMO_MODE=true`) |
+| POST | `/transfers` | Bearer token | Send money to another user `{toEmail, amountPaise, note?}` |
 
-Errors always look like `{"error":{"code","message","details"}}`.
+Send the token as `Authorization: Bearer <token>`.
+
+All money is in **integer paise** (100 paise = Rs 1). Errors always look like `{"error":{"code","message","details"}}`.
+
+### How money moves
+
+- Every movement is one **database transaction**: debit, credit, the transaction record and two ledger entries are saved together, or none are.
+- The debit only succeeds if `balance >= amount` inside the same update, so simultaneous requests can never overspend.
+- Each transaction has a DEBIT and a CREDIT ledger entry. Demo money comes from a special faucet wallet (the only wallet allowed to go negative), so all balances always add up to zero.
 
 ## Tests
 
-Auth tests need the database running (`npm run db:up`). They use a separate `ledgerlite_test` database and fixed test settings, never your `.env`.
+Tests need the database running (`npm run db:up`). They use a separate `ledgerlite_test` database and fixed test settings, never your `.env`.
 
 ## Project structure
 
@@ -64,13 +75,13 @@ src/
   app.js            Express app (no listening, so tests can use it)
   server.js         Starts the HTTP server
   config/           env.js (validated settings), db.js (MongoDB connection)
-  models/           Mongoose schemas (User)
+  models/           Mongoose schemas (User, Wallet, Transaction, LedgerEntry)
   routes/           URL -> handler mapping
   controllers/      HTTP in/out only
-  services/         Business rules (register, login)
+  services/         Business rules (auth, wallet, ledger, transfer)
   middleware/       authenticate (JWT), validate (Joi), error handler
   validators/       Joi request schemas
-  utils/            Logger, AppError, token (JWT), asyncHandler
+  utils/            Logger, AppError, token (JWT), money, withTransaction
 tests/              Jest + Supertest tests
 docs/               Design documents
 ```
@@ -79,14 +90,20 @@ docs/               Design documents
 
 - [x] Milestone 0 - Requirements and design
 - [x] Milestone 1 - Project setup and GitHub
-- [ ] Milestone 2 - Database and authentication (code written, not yet verified)
-- [ ] Milestone 3 - Wallet and ledger
-- [ ] Milestone 4 - Idempotency, concurrency, API tests, OpenAPI
+- [x] Milestone 2 - Database and authentication
+- [x] Milestone 3 - Wallet and ledger (demo funding, atomic transfers)
+- [ ] Milestone 4 - Idempotency, transaction history (pagination), more concurrency tests, OpenAPI
 - [ ] Milestone 5 - Optional React interface
 - [ ] Milestone 6 - Redis caching and rate limiting
 - [ ] Milestone 7 - RabbitMQ notifications (outbox)
 - [ ] Milestone 8 - Docker and CI
 - [ ] Milestone 9 - AWS EC2 deployment and k6 performance tests
+
+## Known limitations (planned)
+
+- A client that retries a transfer after a timeout could send it twice. Idempotency keys arrive in Milestone 4.
+- No history endpoints yet (Milestone 4).
+- No rate limiting yet (Milestone 6). Until then, the "recipient not found" response lets a logged-in user check whether an email is registered.
 
 ## Security notes
 
